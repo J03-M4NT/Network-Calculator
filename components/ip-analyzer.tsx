@@ -17,6 +17,8 @@ export default function IPAnalyzer() {
   const [ip, setIp] = useState("")
   const [info, setInfo] = useState<IPInfo | null>(null)
   const [error, setError] = useState("")
+  const [details, setDetails] = useState<string[]>([])
+  const [loadingIp, setLoadingIp] = useState(false)
 
   const validateIPv4 = (ipStr: string): boolean => {
     const parts = ipStr.split(".")
@@ -29,8 +31,9 @@ export default function IPAnalyzer() {
 
   const analyzeIP = (ipStr: string) => {
     if (!validateIPv4(ipStr)) {
-      setError("Invalid IPv4 address")
+      setError("Dirección IPv4 inválida")
       setInfo(null)
+      setDetails([])
       return
     }
 
@@ -40,24 +43,53 @@ export default function IPAnalyzer() {
 
     // Determine class
     let classType = ""
-    if (firstByte < 128) classType = "A"
-    else if (firstByte < 192) classType = "B"
-    else if (firstByte < 224) classType = "C"
-    else if (firstByte < 240) classType = "D"
-    else classType = "E"
+    let classReason = ""
+    if (firstByte < 128) {
+      classType = "A"
+      classReason = "El primer octeto está entre 0 y 127"
+    } else if (firstByte < 192) {
+      classType = "B"
+      classReason = "El primer octeto está entre 128 y 191"
+    } else if (firstByte < 224) {
+      classType = "C"
+      classReason = "El primer octeto está entre 192 y 223"
+    } else if (firstByte < 240) {
+      classType = "D"
+      classReason = "El primer octeto está entre 224 y 239 (Multicast)"
+    } else {
+      classType = "E"
+      classReason = "El primer octeto está entre 240 y 255 (Experimental)"
+    }
 
     // Determine type (private/public/special)
-    let type = "Public"
-    if (ipStr === "127.0.0.1") type = "Loopback"
-    else if (ipStr === "0.0.0.0") type = "All Zeros"
-    else if (ipStr === "255.255.255.255") type = "Broadcast"
-    else if (ipStr.startsWith("10.")) type = "Private (Class A)"
-    else if (ipStr.startsWith("172.") && parts[1] >= 16 && parts[1] <= 31) type = "Private (Class B)"
-    else if (ipStr.startsWith("192.168.")) type = "Private (Class C)"
-    else if (ipStr.startsWith("169.254.")) type = "Link-Local"
+    let type = "Pública"
+    let typeReason = "No está en ningún rango privado o especial"
+    if (ipStr === "127.0.0.1") {
+      type = "Loopback"
+      typeReason = "127.0.0.1 es la dirección estándar de loopback"
+    } else if (ipStr === "0.0.0.0") {
+      type = "Todos Ceros"
+      typeReason = "0.0.0.0 representa todas las redes"
+    } else if (ipStr === "255.255.255.255") {
+      type = "Broadcast"
+      typeReason = "255.255.255.255 es la dirección de broadcast limitada"
+    } else if (ipStr.startsWith("10.")) {
+      type = "Privada (Clase A)"
+      typeReason = "El rango 10.0.0.0/8 está reservado para redes privadas"
+    } else if (ipStr.startsWith("172.") && parts[1] >= 16 && parts[1] <= 31) {
+      type = "Privada (Clase B)"
+      typeReason = "El rango 172.16.0.0/12 está reservado para redes privadas"
+    } else if (ipStr.startsWith("192.168.")) {
+      type = "Privada (Clase C)"
+      typeReason = "El rango 192.168.0.0/16 está reservado para redes privadas"
+    } else if (ipStr.startsWith("169.254.")) {
+      type = "Link-Local"
+      typeReason = "169.254.0.0/16 se usa para direccionamiento link-local"
+    }
 
     // Convert to binary
-    const binary = parts.map((p) => p.toString(2).padStart(8, "0")).join(".")
+    const binaryParts = parts.map((p) => p.toString(2).padStart(8, "0"))
+    const binary = binaryParts.join(".")
 
     // Convert to decimal notation
     const decimal = (parts[0] * 16777216 + parts[1] * 65536 + parts[2] * 256 + parts[3]).toString()
@@ -74,10 +106,40 @@ export default function IPAnalyzer() {
       hexadecimal,
       firstByte,
     })
+
+    setDetails([
+      "Detalles de Análisis:",
+      "",
+      `1. Determinación de Clase: Clase ${classType}`,
+      `   Razón: ${classReason}`,
+      "",
+      `2. Determinación de Tipo: ${type}`,
+      `   Razón: ${typeReason}`,
+      "",
+      "3. Conversión Binaria:",
+      `   ${parts[0]} -> ${binaryParts[0]}`,
+      `   ${parts[1]} -> ${binaryParts[1]}`,
+      `   ${parts[2]} -> ${binaryParts[2]}`,
+      `   ${parts[3]} -> ${binaryParts[3]}`,
+    ])
   }
 
   const handleAnalyze = () => {
     analyzeIP(ip)
+  }
+
+  const fetchPublicIP = async () => {
+    setLoadingIp(true)
+    try {
+      const response = await fetch("https://api.ipify.org?format=json")
+      const data = await response.json()
+      setIp(data.ip)
+      analyzeIP(data.ip)
+    } catch (err) {
+      setError("Error al obtener IP pública")
+    } finally {
+      setLoadingIp(false)
+    }
   }
 
   const containerVariants = {
@@ -100,7 +162,17 @@ export default function IPAnalyzer() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} className="space-y-6">
       {/* Input Section */}
       <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-8">
-        <label className="block text-sm font-medium text-slate-300 mb-3">Enter IPv4 Address</label>
+        <div className="flex justify-between items-center mb-3">
+          <label className="block text-sm font-medium text-slate-300">Ingresar Dirección IPv4</label>
+          <button
+            onClick={fetchPublicIP}
+            disabled={loadingIp}
+            className="text-xs bg-slate-700 hover:bg-slate-600 text-blue-400 px-2 py-1 rounded transition-colors flex items-center gap-1"
+          >
+            {loadingIp ? <span className="animate-spin">⌛</span> : <span>📍</span>}
+            Usar Mi IP Pública
+          </button>
+        </div>
         <div className="flex gap-3">
           <input
             type="text"
@@ -116,7 +188,7 @@ export default function IPAnalyzer() {
             whileTap={{ scale: 0.98 }}
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-6 rounded-lg transition-all shadow-lg shadow-blue-600/50"
           >
-            Analyze
+            Analizar
           </motion.button>
         </div>
       </div>
@@ -141,8 +213,8 @@ export default function IPAnalyzer() {
           className="grid grid-cols-1 md:grid-cols-2 gap-4"
         >
           {[
-            { label: "Class", value: info.class },
-            { label: "Type", value: info.type },
+            { label: "Clase", value: info.class },
+            { label: "Tipo", value: info.type },
             { label: "Decimal", value: info.decimal },
             { label: "Hex", value: info.hexadecimal },
           ].map((item, idx) => (
@@ -160,8 +232,25 @@ export default function IPAnalyzer() {
             variants={itemVariants}
             className="md:col-span-2 bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-lg p-4"
           >
-            <p className="text-slate-400 text-sm mb-2">Binary</p>
+            <p className="text-slate-400 text-sm mb-2">Binario</p>
             <p className="text-blue-400 font-mono text-sm break-all">{info.binary}</p>
+          </motion.div>
+
+          {/* Details Section */}
+          <motion.div
+            variants={itemVariants}
+            className="md:col-span-2 bg-slate-900/50 border border-slate-700 rounded-lg p-4 mt-2"
+          >
+            <h3 className="text-sm font-semibold text-slate-300 mb-2 flex items-center gap-2">
+              <span>📝</span> Detalles de Análisis
+            </h3>
+            <div className="space-y-1 font-mono text-sm text-slate-400">
+              {details.map((line, index) => (
+                <div key={index} className={line === "" ? "h-2" : ""}>
+                  {line}
+                </div>
+              ))}
+            </div>
           </motion.div>
         </motion.div>
       )}

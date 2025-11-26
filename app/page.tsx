@@ -10,9 +10,9 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"converter" | "analyzer" | "subnet">("converter")
 
   const tabs = [
-    { id: "converter", label: "IPv4 ↔ IPv6", icon: "🔄" },
-    { id: "analyzer", label: "IP Analyzer", icon: "🔍" },
-    { id: "subnet", label: "Subnet CIDR", icon: "🌐" },
+    { id: "converter", label: "Conversor IPv4/IPv6", icon: "🔄" },
+    { id: "analyzer", label: "Analizador IP", icon: "🔍" },
+    { id: "subnet", label: "Subneteo CIDR", icon: "🌐" },
   ]
 
   return (
@@ -25,8 +25,8 @@ export default function Home() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h1 className="text-5xl font-bold text-white mb-2">IP Calculator</h1>
-          <p className="text-slate-400 text-lg">Convert, analyze, and manage IP addresses with precision</p>
+          <h1 className="text-5xl font-bold text-white mb-2">Calculadora IP</h1>
+          <p className="text-slate-400 text-lg">Convierte, analiza y gestiona direcciones IP con precisión</p>
         </motion.div>
 
         {/* Tabs */}
@@ -42,11 +42,10 @@ export default function Home() {
               onClick={() => setActiveTab(tab.id as any)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 ${
-                activeTab === tab.id
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/50"
-                  : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-              }`}
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 ${activeTab === tab.id
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/50"
+                : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                }`}
             >
               <span>{tab.icon}</span>
               {tab.label}

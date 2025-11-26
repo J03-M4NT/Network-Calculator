@@ -17,6 +17,8 @@ export default function SubnetCalculator() {
   const [input, setInput] = useState("")
   const [info, setInfo] = useState<SubnetInfo | null>(null)
   const [error, setError] = useState("")
+  const [details, setDetails] = useState<string[]>([])
+  const [loadingIp, setLoadingIp] = useState(false)
 
   const validateIPv4 = (ip: string): boolean => {
     const parts = ip.split(".")
@@ -52,8 +54,9 @@ export default function SubnetCalculator() {
   const calculateSubnet = (input: string) => {
     const parsed = parseSubnet(input)
     if (!parsed) {
-      setError("Invalid format. Use: 192.168.1.0/24")
+      setError("Formato inválido. Usar: 192.168.1.0/24")
       setInfo(null)
+      setDetails([])
       return
     }
 
@@ -66,17 +69,61 @@ export default function SubnetCalculator() {
     const broadcast = network | (~mask >>> 0)
     const firstHost = network + 1
     const lastHost = broadcast - 1
-    const hostCount = broadcast - network - 1
+    const hostCount = cidr === 32 ? 1 : cidr === 31 ? 2 : broadcast - network - 1
+
+    const netmaskStr = numberToIp(mask)
+    const networkStr = numberToIp(network)
+    const broadcastStr = numberToIp(broadcast)
 
     setInfo({
-      network: numberToIp(network),
-      netmask: numberToIp(mask),
-      broadcast: numberToIp(broadcast),
+      network: networkStr,
+      netmask: netmaskStr,
+      broadcast: broadcastStr,
       firstHost: numberToIp(firstHost),
       lastHost: numberToIp(lastHost),
       hostCount,
       cidr,
     })
+
+    setDetails([
+      "Detalles de Cálculo:",
+      "",
+      `1. Cálculo de Máscara (/${cidr}):`,
+      `   Binario: ${mask.toString(2).padStart(32, "0").match(/.{1,8}/g)?.join(".")}`,
+      `   Decimal: ${netmaskStr}`,
+      "",
+      "2. Dirección de Red (IP & Máscara):",
+      `   IP Binario:      ${ipNum.toString(2).padStart(32, "0").match(/.{1,8}/g)?.join(".")}`,
+      `   Máscara Binario: ${mask.toString(2).padStart(32, "0").match(/.{1,8}/g)?.join(".")}`,
+      `   Resultado:       ${network.toString(2).padStart(32, "0").match(/.{1,8}/g)?.join(".")}`,
+      `   Decimal:         ${networkStr}`,
+      "",
+      "3. Dirección de Broadcast (Red | ~Máscara):",
+      `   Resultado:       ${broadcast.toString(2).padStart(32, "0").match(/.{1,8}/g)?.join(".")}`,
+      `   Decimal:         ${broadcastStr}`,
+      "",
+      "4. Rango de Hosts:",
+      `   Primer Host: Red + 1 = ${numberToIp(firstHost)}`,
+      `   Último Host: Broadcast - 1 = ${numberToIp(lastHost)}`,
+      `   Total de Hosts: 2^(32 - ${cidr}) - 2 = ${hostCount.toLocaleString()}`,
+    ])
+  }
+
+  const fetchPublicIP = async () => {
+    setLoadingIp(true)
+    try {
+      const response = await fetch("https://api.ipify.org?format=json")
+      const data = await response.json()
+      // Keep existing CIDR or default to /24
+      const currentCidr = input.includes("/") ? input.split("/")[1] : "24"
+      const newInput = `${data.ip}/${currentCidr}`
+      setInput(newInput)
+      calculateSubnet(newInput)
+    } catch (err) {
+      setError("Error al obtener IP pública")
+    } finally {
+      setLoadingIp(false)
+    }
   }
 
   const containerVariants = {
@@ -99,7 +146,17 @@ export default function SubnetCalculator() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} className="space-y-6">
       {/* Input Section */}
       <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-8">
-        <label className="block text-sm font-medium text-slate-300 mb-3">Subnet (CIDR Notation)</label>
+        <div className="flex justify-between items-center mb-3">
+          <label className="block text-sm font-medium text-slate-300">Subred (Notación CIDR)</label>
+          <button
+            onClick={fetchPublicIP}
+            disabled={loadingIp}
+            className="text-xs bg-slate-700 hover:bg-slate-600 text-blue-400 px-2 py-1 rounded transition-colors flex items-center gap-1"
+          >
+            {loadingIp ? <span className="animate-spin">⌛</span> : <span>📍</span>}
+            Usar Mi IP Pública
+          </button>
+        </div>
         <div className="flex gap-3">
           <input
             type="text"
@@ -115,7 +172,7 @@ export default function SubnetCalculator() {
             whileTap={{ scale: 0.98 }}
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-6 rounded-lg transition-all shadow-lg shadow-blue-600/50"
           >
-            Calculate
+            Calcular
           </motion.button>
         </div>
       </div>
@@ -140,12 +197,12 @@ export default function SubnetCalculator() {
           className="grid grid-cols-1 md:grid-cols-2 gap-4"
         >
           {[
-            { label: "Network", value: info.network },
-            { label: "Netmask", value: info.netmask },
+            { label: "Red", value: info.network },
+            { label: "Máscara", value: info.netmask },
             { label: "Broadcast", value: info.broadcast },
-            { label: "First Host", value: info.firstHost },
-            { label: "Last Host", value: info.lastHost },
-            { label: "Host Count", value: info.hostCount.toLocaleString() },
+            { label: "Primer Host", value: info.firstHost },
+            { label: "Último Host", value: info.lastHost },
+            { label: "Cantidad de Hosts", value: info.hostCount.toLocaleString() },
             { label: "CIDR", value: `/${info.cidr}` },
           ].map((item, idx) => (
             <motion.div
@@ -157,6 +214,23 @@ export default function SubnetCalculator() {
               <p className="text-blue-400 font-semibold text-lg break-all">{item.value}</p>
             </motion.div>
           ))}
+
+          {/* Details Section */}
+          <motion.div
+            variants={itemVariants}
+            className="md:col-span-2 bg-slate-900/50 border border-slate-700 rounded-lg p-4 mt-2"
+          >
+            <h3 className="text-sm font-semibold text-slate-300 mb-2 flex items-center gap-2">
+              <span>📝</span> Detalles de Cálculo
+            </h3>
+            <div className="space-y-1 font-mono text-sm text-slate-400">
+              {details.map((line, index) => (
+                <div key={index} className={line === "" ? "h-2" : ""}>
+                  {line}
+                </div>
+              ))}
+            </div>
+          </motion.div>
         </motion.div>
       )}
     </motion.div>
