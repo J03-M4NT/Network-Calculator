@@ -224,7 +224,7 @@ export default function IPAnalyzer() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-8 shadow-xl"
+        className="card p-6 shadow-xl"
       >
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <div>
@@ -236,7 +236,7 @@ export default function IPAnalyzer() {
           <button
             onClick={fetchPublicIP}
             disabled={loadingIp}
-            className="text-sm bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 text-blue-400 px-4 py-2 rounded-lg transition-all flex items-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm px-3 py-2 rounded-lg transition-all flex items-center gap-2 text-slate-200 bg-slate-700/40 hover:bg-slate-700/60 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loadingIp ? (
               <>
@@ -273,7 +273,7 @@ export default function IPAnalyzer() {
             onClick={handleAnalyze}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-8 py-3.5 rounded-lg transition-all shadow-lg shadow-blue-600/50 flex items-center justify-center gap-2"
+            className="btn-primary flex items-center justify-center gap-2"
           >
             <span>⚡</span>
             <span>Analizar</span>
@@ -305,7 +305,7 @@ export default function IPAnalyzer() {
           {/* IP Address Display */}
           <motion.div
             variants={itemVariants}
-            className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 backdrop-blur border border-blue-500/50 rounded-xl p-6 shadow-xl"
+            className="card p-4"
           >
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
@@ -341,7 +341,7 @@ export default function IPAnalyzer() {
               <motion.div
                 key={idx}
                 variants={itemVariants}
-                className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-5 shadow-lg hover:border-slate-600 transition-all"
+                className="card p-4 hover:shadow-xl transition-all"
               >
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg">{item.icon}</span>
@@ -354,7 +354,7 @@ export default function IPAnalyzer() {
             {/* Binary Card - Full Width */}
             <motion.div
               variants={itemVariants}
-              className="md:col-span-2 lg:col-span-3 bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-5 shadow-lg"
+              className="md:col-span-2 lg:col-span-3 card p-4"
             >
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-lg">🔢</span>
@@ -378,7 +378,7 @@ export default function IPAnalyzer() {
           {/* Details Section */}
           <motion.div
             variants={itemVariants}
-            className="bg-slate-900/50 border border-slate-700 rounded-xl p-6 shadow-xl"
+            className="card p-4"
           >
             <h3 className="text-base font-semibold text-slate-200 mb-4 flex items-center gap-2">
               <span className="text-xl">📝</span>

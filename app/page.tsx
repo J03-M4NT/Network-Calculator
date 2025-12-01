@@ -16,8 +16,9 @@ export default function Home() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen app-bg relative">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="card p-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -40,15 +41,12 @@ export default function Home() {
             <motion.button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 ${activeTab === tab.id
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/50"
-                : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                }`}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              className={`tab ${activeTab === tab.id ? 'bg-gradient-to-r from-indigo-600 to-cyan-500 text-white shadow-lg' : 'text-slate-200'} `}
             >
-              <span>{tab.icon}</span>
-              {tab.label}
+              <span className="text-xl">{tab.icon}</span>
+              <span className="whitespace-nowrap">{tab.label}</span>
             </motion.button>
           ))}
         </motion.div>
@@ -61,10 +59,13 @@ export default function Home() {
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.3 }}
         >
-          {activeTab === "converter" && <IPv4ToIPv6Converter />}
-          {activeTab === "analyzer" && <IPAnalyzer />}
-          {activeTab === "subnet" && <SubnetCalculator />}
+          <div className="mt-6">
+            {activeTab === "converter" && <IPv4ToIPv6Converter />}
+            {activeTab === "analyzer" && <IPAnalyzer />}
+            {activeTab === "subnet" && <SubnetCalculator />}
+          </div>
         </motion.div>
+        </div>
       </div>
     </div>
   )

@@ -145,13 +145,13 @@ export default function SubnetCalculator() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} className="space-y-6">
       {/* Input Section */}
-      <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-8">
+      <div className="card p-6">
         <div className="flex justify-between items-center mb-3">
           <label className="block text-sm font-medium text-slate-300">Subred (Notación CIDR)</label>
           <button
             onClick={fetchPublicIP}
             disabled={loadingIp}
-            className="text-xs bg-slate-700 hover:bg-slate-600 text-blue-400 px-2 py-1 rounded transition-colors flex items-center gap-1"
+            className="text-xs px-2 py-1 rounded transition-colors flex items-center gap-1 text-slate-200 bg-slate-700/40 hover:bg-slate-700/60"
           >
             {loadingIp ? <span className="animate-spin">⌛</span> : <span>📍</span>}
             Usar Mi IP Pública
@@ -170,7 +170,7 @@ export default function SubnetCalculator() {
             onClick={() => calculateSubnet(input)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-6 rounded-lg transition-all shadow-lg shadow-blue-600/50"
+            className="btn-primary"
           >
             Calcular
           </motion.button>
@@ -208,7 +208,7 @@ export default function SubnetCalculator() {
             <motion.div
               key={idx}
               variants={itemVariants}
-              className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-lg p-4 hover:border-blue-500/50 transition-all"
+              className="card p-4 hover:shadow-xl transition-all"
             >
               <p className="text-slate-400 text-sm mb-1">{item.label}</p>
               <p className="text-blue-400 font-semibold text-lg break-all">{item.value}</p>
@@ -218,7 +218,7 @@ export default function SubnetCalculator() {
           {/* Details Section */}
           <motion.div
             variants={itemVariants}
-            className="md:col-span-2 bg-slate-900/50 border border-slate-700 rounded-lg p-4 mt-2"
+            className="md:col-span-2 card p-4 mt-2"
           >
             <h3 className="text-sm font-semibold text-slate-300 mb-2 flex items-center gap-2">
               <span>📝</span> Detalles de Cálculo

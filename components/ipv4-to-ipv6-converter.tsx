@@ -151,7 +151,7 @@ export default function IPv4ToIPv6Converter() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-xl p-8"
+      className="card p-6"
     >
       <div className="flex gap-4 mb-6 border-b border-slate-700">
         {(["ipv4", "ipv6"] as const).map((tab) => (
@@ -180,7 +180,7 @@ export default function IPv4ToIPv6Converter() {
             <button
               onClick={fetchPublicIP}
               disabled={loadingIp}
-              className="text-xs bg-slate-700 hover:bg-slate-600 text-blue-400 px-2 py-1 rounded transition-colors flex items-center gap-1"
+              className="text-xs px-2 py-1 rounded transition-colors flex items-center gap-1 text-slate-200 bg-slate-700/40 hover:bg-slate-700/60"
             >
               {loadingIp ? (
                 <span className="animate-spin">⌛</span>
@@ -212,7 +212,7 @@ export default function IPv4ToIPv6Converter() {
           onClick={handleConvert}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 rounded-lg transition-all duration-300 shadow-lg shadow-blue-600/50"
+          className="btn-primary w-full justify-center"
         >
           Convertir
         </motion.button>
