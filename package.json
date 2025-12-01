@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
-    "dev": "next dev",
+    "build": "node node_modules/next/dist/cli/next-build.js",
+    "dev": "node node_modules/next/dist/cli/next-dev.js",
     "lint": "eslint .",
-    "start": "next start"
+    "start": "node node_modules/next/dist/cli/next-start.js"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",
