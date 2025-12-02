@@ -2,17 +2,24 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
+import dynamic from "next/dynamic"
 import IPv4ToIPv6Converter from "@/components/ipv4-to-ipv6-converter"
 import IPAnalyzer from "@/components/ip-analyzer"
 import SubnetCalculator from "@/components/subnet-calculator"
 
+const IPGeolocation = dynamic(() => import("@/components/ip-geolocation"), {
+  ssr: false,
+  loading: () => <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md text-center">Cargando mapa...</div>
+})
+
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"converter" | "analyzer" | "subnet">("converter")
+  const [activeTab, setActiveTab] = useState<"converter" | "analyzer" | "subnet" | "geolocation">("geolocation")
 
   const tabs = [
     { id: "converter", label: "Conversor IPv4/IPv6", icon: "🔄" },
     { id: "analyzer", label: "Analizador IP", icon: "🔍" },
     { id: "subnet", label: "Subneteo CIDR", icon: "🌐" },
+    { id: "geolocation", label: "Geolocalización IP", icon: "🌍" },
   ]
 
   return (
@@ -64,6 +71,7 @@ export default function Home() {
           {activeTab === "converter" && <IPv4ToIPv6Converter />}
           {activeTab === "analyzer" && <IPAnalyzer />}
           {activeTab === "subnet" && <SubnetCalculator />}
+          {activeTab === "geolocation" && <IPGeolocation />}
         </motion.div>
       </div>
     </div>
