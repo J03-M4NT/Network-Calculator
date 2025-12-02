@@ -13,12 +13,23 @@ interface SubnetInfo {
   cidr: number
 }
 
+interface SubnetItem {
+  index: number
+  network: string
+  firstHost: string
+  lastHost: string
+  broadcast: string
+}
+
 export default function SubnetCalculator() {
   const [input, setInput] = useState("")
   const [info, setInfo] = useState<SubnetInfo | null>(null)
   const [error, setError] = useState("")
   const [details, setDetails] = useState<string[]>([])
   const [loadingIp, setLoadingIp] = useState(false)
+  const [subnetsToCreate, setSubnetsToCreate] = useState<number>(2)
+  const [subnetsList, setSubnetsList] = useState<SubnetItem[]>([])
+  const [showSubnets, setShowSubnets] = useState(false)
 
   const validateIPv4 = (ip: string): boolean => {
     const parts = ip.split(".")
@@ -49,6 +60,36 @@ export default function SubnetCalculator() {
     const c = Math.floor(num / 256) & 255
     const d = num & 255
     return `${a}.${b}.${c}.${d}`
+  }
+
+  const calculateSubnets = (networkNum: number, originalCidr: number, numSubnets: number): SubnetItem[] => {
+    const bitsNeeded = Math.ceil(Math.log2(numSubnets))
+    const newCidr = originalCidr + bitsNeeded
+    
+    if (newCidr > 32) {
+      return []
+    }
+
+    const actualSubnets = Math.pow(2, bitsNeeded)
+    const subnetSize = Math.pow(2, 32 - newCidr)
+    const subnets: SubnetItem[] = []
+
+    for (let i = 0; i < actualSubnets; i++) {
+      const subnetNetwork = networkNum + (i * subnetSize)
+      const subnetBroadcast = subnetNetwork + subnetSize - 1
+      const firstHost = subnetNetwork + 1
+      const lastHost = subnetBroadcast - 1
+
+      subnets.push({
+        index: i + 1,
+        network: `${numberToIp(subnetNetwork)}/${newCidr}`,
+        firstHost: numberToIp(firstHost),
+        lastHost: numberToIp(lastHost),
+        broadcast: numberToIp(subnetBroadcast),
+      })
+    }
+
+    return subnets
   }
 
   const calculateSubnet = (input: string) => {
@@ -107,6 +148,10 @@ export default function SubnetCalculator() {
       `   Último Host: Broadcast - 1 = ${numberToIp(lastHost)}`,
       `   Total de Hosts: 2^(32 - ${cidr}) - 2 = ${hostCount.toLocaleString()}`,
     ])
+
+    // Calculate subnets list
+    const subnets = calculateSubnets(network, cidr, subnetsToCreate)
+    setSubnetsList(subnets)
   }
 
   const fetchPublicIP = async () => {
@@ -157,7 +202,7 @@ export default function SubnetCalculator() {
             Usar Mi IP Pública
           </button>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 mb-4">
           <input
             type="text"
             value={input}
@@ -174,6 +219,37 @@ export default function SubnetCalculator() {
           >
             Calcular
           </motion.button>
+        </div>
+
+        {/* Subnet Division Options */}
+        <div className="flex items-center gap-4 pt-4 border-t border-slate-700">
+          <label className="text-sm text-slate-400">Dividir en:</label>
+          <select
+            value={subnetsToCreate}
+            onChange={(e) => {
+              setSubnetsToCreate(Number(e.target.value))
+              if (info) {
+                const parsed = parseSubnet(input)
+                if (parsed) {
+                  const [, cidr] = parsed
+                  const mask = (0xffffffff << (32 - cidr)) >>> 0
+                  const ipNum = ipToNumber(parsed[0])
+                  const network = ipNum & mask
+                  setSubnetsList(calculateSubnets(network, cidr, Number(e.target.value)))
+                }
+              }
+            }}
+            className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {[2, 4, 8, 16, 32, 64, 128, 256].map((n) => (
+              <option key={n} value={n}>
+                {n} subredes
+              </option>
+            ))}
+          </select>
+          <span className="text-xs text-slate-500">
+            (Bits adicionales: {Math.ceil(Math.log2(subnetsToCreate))})
+          </span>
         </div>
       </div>
 
@@ -231,6 +307,69 @@ export default function SubnetCalculator() {
               ))}
             </div>
           </motion.div>
+
+          {/* Subnets List Section */}
+          {subnetsList.length > 0 && (
+            <motion.div
+              variants={itemVariants}
+              className="md:col-span-2 bg-slate-900/50 border border-slate-700 rounded-lg p-4 mt-2"
+            >
+              <button
+                onClick={() => setShowSubnets(!showSubnets)}
+                className="w-full flex items-center justify-between text-sm font-semibold text-slate-300 mb-2"
+              >
+                <span className="flex items-center gap-2">
+                  <span>🌐</span> Listado de Subredes ({subnetsList.length} subredes, /{info.cidr + Math.ceil(Math.log2(subnetsToCreate))} cada una)
+                </span>
+                <span className={`transform transition-transform ${showSubnets ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
+              </button>
+              
+              {showSubnets && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-x-auto"
+                >
+                  <table className="w-full text-sm mt-3">
+                    <thead>
+                      <tr className="text-slate-400 border-b border-slate-700">
+                        <th className="text-left py-2 px-2">#</th>
+                        <th className="text-left py-2 px-2">Red</th>
+                        <th className="text-left py-2 px-2">Primer Host</th>
+                        <th className="text-left py-2 px-2">Último Host</th>
+                        <th className="text-left py-2 px-2">Broadcast</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {subnetsList.map((subnet) => (
+                        <tr
+                          key={subnet.index}
+                          className="border-b border-slate-700/50 hover:bg-slate-800/50 transition-colors"
+                        >
+                          <td className="py-2 px-2 text-slate-500">{subnet.index}</td>
+                          <td className="py-2 px-2 text-blue-400 font-mono">{subnet.network}</td>
+                          <td className="py-2 px-2 text-green-400 font-mono">{subnet.firstHost}</td>
+                          <td className="py-2 px-2 text-green-400 font-mono">{subnet.lastHost}</td>
+                          <td className="py-2 px-2 text-orange-400 font-mono">{subnet.broadcast}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  
+                  <div className="mt-4 p-3 bg-slate-800/50 rounded-lg text-xs text-slate-400">
+                    <p className="font-semibold text-slate-300 mb-1">📊 Resumen de División:</p>
+                    <p>• Red original: {info.network}/{info.cidr}</p>
+                    <p>• Nueva máscara: /{info.cidr + Math.ceil(Math.log2(subnetsToCreate))}</p>
+                    <p>• Bits prestados: {Math.ceil(Math.log2(subnetsToCreate))}</p>
+                    <p>• Hosts por subred: {Math.pow(2, 32 - (info.cidr + Math.ceil(Math.log2(subnetsToCreate)))) - 2}</p>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
         </motion.div>
       )}
     </motion.div>
