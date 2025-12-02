@@ -30,6 +30,8 @@ export default function SubnetCalculator() {
   const [subnetsToCreate, setSubnetsToCreate] = useState<number>(2)
   const [subnetsList, setSubnetsList] = useState<SubnetItem[]>([])
   const [showSubnets, setShowSubnets] = useState(false)
+  const [newCidrInput, setNewCidrInput] = useState<number>(25)
+  const [divisionMode, setDivisionMode] = useState<"subnets" | "cidr">("subnets")
 
   const validateIPv4 = (ip: string): boolean => {
     const parts = ip.split(".")
@@ -62,15 +64,28 @@ export default function SubnetCalculator() {
     return `${a}.${b}.${c}.${d}`
   }
 
-  const calculateSubnets = (networkNum: number, originalCidr: number, numSubnets: number): SubnetItem[] => {
-    const bitsNeeded = Math.ceil(Math.log2(numSubnets))
-    const newCidr = originalCidr + bitsNeeded
-    
-    if (newCidr > 32) {
-      return []
+  const calculateSubnets = (networkNum: number, originalCidr: number, numSubnets: number, targetCidr?: number): SubnetItem[] => {
+    let newCidr: number
+    let actualSubnets: number
+
+    if (targetCidr !== undefined) {
+      // Mode: specify target CIDR
+      if (targetCidr <= originalCidr || targetCidr > 32) {
+        return []
+      }
+      newCidr = targetCidr
+      actualSubnets = Math.pow(2, targetCidr - originalCidr)
+    } else {
+      // Mode: specify number of subnets
+      const bitsNeeded = Math.ceil(Math.log2(numSubnets))
+      newCidr = originalCidr + bitsNeeded
+      
+      if (newCidr > 32) {
+        return []
+      }
+      actualSubnets = Math.pow(2, bitsNeeded)
     }
 
-    const actualSubnets = Math.pow(2, bitsNeeded)
     const subnetSize = Math.pow(2, 32 - newCidr)
     const subnets: SubnetItem[] = []
 
@@ -150,7 +165,9 @@ export default function SubnetCalculator() {
     ])
 
     // Calculate subnets list
-    const subnets = calculateSubnets(network, cidr, subnetsToCreate)
+    const subnets = divisionMode === "cidr" 
+      ? calculateSubnets(network, cidr, 0, newCidrInput)
+      : calculateSubnets(network, cidr, subnetsToCreate)
     setSubnetsList(subnets)
   }
 
@@ -222,34 +239,97 @@ export default function SubnetCalculator() {
         </div>
 
         {/* Subnet Division Options */}
-        <div className="flex items-center gap-4 pt-4 border-t border-slate-700">
-          <label className="text-sm text-slate-400">Dividir en:</label>
-          <select
-            value={subnetsToCreate}
-            onChange={(e) => {
-              setSubnetsToCreate(Number(e.target.value))
-              if (info) {
-                const parsed = parseSubnet(input)
-                if (parsed) {
-                  const [, cidr] = parsed
-                  const mask = (0xffffffff << (32 - cidr)) >>> 0
-                  const ipNum = ipToNumber(parsed[0])
-                  const network = ipNum & mask
-                  setSubnetsList(calculateSubnets(network, cidr, Number(e.target.value)))
-                }
-              }
-            }}
-            className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {[2, 4, 8, 16, 32, 64, 128, 256].map((n) => (
-              <option key={n} value={n}>
-                {n} subredes
-              </option>
-            ))}
-          </select>
-          <span className="text-xs text-slate-500">
-            (Bits adicionales: {Math.ceil(Math.log2(subnetsToCreate))})
-          </span>
+        <div className="pt-4 border-t border-slate-700 space-y-3">
+          <div className="flex items-center gap-4">
+            <label className="text-sm text-slate-400">Modo de división:</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDivisionMode("subnets")}
+                className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                  divisionMode === "subnets"
+                    ? "bg-blue-600 text-white"
+                    : "bg-slate-700 text-slate-400 hover:bg-slate-600"
+                }`}
+              >
+                Por cantidad
+              </button>
+              <button
+                onClick={() => setDivisionMode("cidr")}
+                className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                  divisionMode === "cidr"
+                    ? "bg-blue-600 text-white"
+                    : "bg-slate-700 text-slate-400 hover:bg-slate-600"
+                }`}
+              >
+                Por máscara
+              </button>
+            </div>
+          </div>
+
+          {divisionMode === "subnets" ? (
+            <div className="flex items-center gap-4">
+              <label className="text-sm text-slate-400">Dividir en:</label>
+              <select
+                value={subnetsToCreate}
+                onChange={(e) => {
+                  setSubnetsToCreate(Number(e.target.value))
+                  if (info) {
+                    const parsed = parseSubnet(input)
+                    if (parsed) {
+                      const [, cidr] = parsed
+                      const mask = (0xffffffff << (32 - cidr)) >>> 0
+                      const ipNum = ipToNumber(parsed[0])
+                      const network = ipNum & mask
+                      setSubnetsList(calculateSubnets(network, cidr, Number(e.target.value)))
+                    }
+                  }
+                }}
+                className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {[2, 4, 8, 16, 32, 64, 128, 256].map((n) => (
+                  <option key={n} value={n}>
+                    {n} subredes
+                  </option>
+                ))}
+              </select>
+              <span className="text-xs text-slate-500">
+                (Bits adicionales: {Math.ceil(Math.log2(subnetsToCreate))})
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4">
+              <label className="text-sm text-slate-400">Nueva máscara:</label>
+              <div className="flex items-center gap-2">
+                <span className="text-white">/</span>
+                <input
+                  type="number"
+                  min={info ? info.cidr + 1 : 1}
+                  max={32}
+                  value={newCidrInput}
+                  onChange={(e) => {
+                    const value = Number(e.target.value)
+                    setNewCidrInput(value)
+                    if (info && value > info.cidr && value <= 32) {
+                      const parsed = parseSubnet(input)
+                      if (parsed) {
+                        const [, cidr] = parsed
+                        const mask = (0xffffffff << (32 - cidr)) >>> 0
+                        const ipNum = ipToNumber(parsed[0])
+                        const network = ipNum & mask
+                        setSubnetsList(calculateSubnets(network, cidr, 0, value))
+                      }
+                    }
+                  }}
+                  className="w-16 bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                />
+              </div>
+              {info && (
+                <span className="text-xs text-slate-500">
+                  (Original: /{info.cidr} → Subredes: {newCidrInput > info.cidr ? Math.pow(2, newCidrInput - info.cidr) : 0})
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -319,7 +399,7 @@ export default function SubnetCalculator() {
                 className="w-full flex items-center justify-between text-sm font-semibold text-slate-300 mb-2"
               >
                 <span className="flex items-center gap-2">
-                  <span>🌐</span> Listado de Subredes ({subnetsList.length} subredes, /{info.cidr + Math.ceil(Math.log2(subnetsToCreate))} cada una)
+                  <span>🌐</span> Listado de Subredes ({subnetsList.length} subredes, /{divisionMode === "cidr" ? newCidrInput : info.cidr + Math.ceil(Math.log2(subnetsToCreate))} cada una)
                 </span>
                 <span className={`transform transition-transform ${showSubnets ? 'rotate-180' : ''}`}>
                   ▼
@@ -362,9 +442,9 @@ export default function SubnetCalculator() {
                   <div className="mt-4 p-3 bg-slate-800/50 rounded-lg text-xs text-slate-400">
                     <p className="font-semibold text-slate-300 mb-1">📊 Resumen de División:</p>
                     <p>• Red original: {info.network}/{info.cidr}</p>
-                    <p>• Nueva máscara: /{info.cidr + Math.ceil(Math.log2(subnetsToCreate))}</p>
-                    <p>• Bits prestados: {Math.ceil(Math.log2(subnetsToCreate))}</p>
-                    <p>• Hosts por subred: {Math.pow(2, 32 - (info.cidr + Math.ceil(Math.log2(subnetsToCreate)))) - 2}</p>
+                    <p>• Nueva máscara: /{divisionMode === "cidr" ? newCidrInput : info.cidr + Math.ceil(Math.log2(subnetsToCreate))}</p>
+                    <p>• Bits prestados: {divisionMode === "cidr" ? newCidrInput - info.cidr : Math.ceil(Math.log2(subnetsToCreate))}</p>
+                    <p>• Hosts por subred: {Math.pow(2, 32 - (divisionMode === "cidr" ? newCidrInput : info.cidr + Math.ceil(Math.log2(subnetsToCreate)))) - 2}</p>
                   </div>
                 </motion.div>
               )}
